@@ -16,6 +16,7 @@ from shutil import get_terminal_size
 from typing import Any, Dict, List, Set
 
 import requests
+from requests.exceptions import ConnectionError
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress
@@ -93,12 +94,15 @@ def show_reviews(config: Dict[str, Any], suppress_notifications: bool) -> None:
         )
         for project in project_ids:
             api_url_project = f"{api_url}/projects/{project}"
-            merge_requests_data = json.loads(
-                requests.get(
-                    f"{api_url_project}/merge_requests?state=opened&per_page=500",
-                    headers={"PRIVATE-TOKEN": secret_token},
-                ).content
-            )
+            try:
+                merge_requests_data = json.loads(
+                    requests.get(
+                        f"{api_url_project}/merge_requests?state=opened&per_page=500",
+                        headers={"PRIVATE-TOKEN": secret_token},
+                    ).content
+                )
+            except ConnectionError:
+                raise RCException("Connection to GitLab broken.")
             if isinstance(merge_requests_data, dict):
                 raise Exception("Malformed data received from GitLab")
             else:
